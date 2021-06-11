@@ -1,0 +1,52 @@
+ #!/bin/bash
+
+ dir1=$1
+ dir2=$2
+ NN1=${dir1%/*}
+ NN2=${dir2%/*}
+ NN3=${dir1##*/}
+ NN4=`du -s $dir1 | cut -f1`
+ NN5=`df $dir2 | awk '{print $4}' | tail -n 1`
+
+# test directories exist
+cd $dir1 > /dev/null > 2&>1
+ if [ $? -eq 1 ]; then
+ echo "Source Directory Not Exist"
+        exit
+ fi
+ cd $dir2 > /dev/null > 2&>1
+ if [ $? -eq 1 ]; then
+ echo "Destination Directory Not Exist"
+        exit
+ fi
+
+ #test identical and parents
+ if [ "$dir1" == "$dir2" ]; then
+        echo "The directories are identical"
+        exit
+elif [ "$NN1" == "$dir2" ]; then
+        echo "dest_dir is parent for source_dest"
+        exit
+elif [ "$NN2" == "$dir1" ]; then
+        echo "source_dest is parent for dest_dir"
+        exit
+else
+        echo no parent dirs
+fi
+
+
+#copy directories
+if (("$NN4" < "$NN5")); then
+         cp -pr $dir1 $dir2/$NN3
+echo "directory copied"
+ else
+        echo "Not enough space on destination source, do you want copy files?"
+while true; do
+read -p "type Y to continue or N to abort:" yn
+    case $yn in
+        [Yy]* ) cp -pr $dir1 $dir2/$NN3;;
+        [Nn]* ) exit;;
+        * ) echo "Please type y or n";;
+    esac
+done
+fi
