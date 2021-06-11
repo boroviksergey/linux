@@ -1,0 +1,69 @@
+#!/bin/bash
+# Decimal ASCII codes (see man ascii);
+AARR=( {48..57} {65..90} {97..122} )
+# Array count
+aarrcount=${#AARR[@]}
+
+OUTDIR=$1
+DIRDEPTH=$2
+MAXFILESIZE=$3
+TOTALQ=$4
+FILENAME=".f"
+VERBOSE=0 #1
+
+get_rand_dirname() {
+    for ((i=0; i<$((1 + RANDOM%8)); i++)) {
+      printf \\$(printf '%03o' ${AARR[RANDOM%aarrcount]});
+    }
+}
+get_rand_filename() {
+    for ((i=0; i<$((1 + RANDOM%8)); i++)) {
+#    for ((i=0; i<${TOTALQ}; i++)) {
+      printf \\$(printf '%03o' ${AARR[RANDOM%aarrcount]});
+    }
+  printf "%s" $FILENAME
+}
+
+mkdir "$OUTDIR"
+
+# create directories
+  FLDIR="$(get_rand_dirname)"
+  FLCHILDREN="";
+  for (( ird=0;ird<$((DIRDEPTH-1));ird++ )) {
+    DIRCHILDREN=""; MOREDC=0;
+    for ((idc=0; idc<$((1 +  RANDOM%9)); idc++)) {
+      CDIR="$(get_rand_dirname)" ;
+      if [ "$DIRCHILDREN" == "" ]; then DIRCHILDREN="\"$CDIR\"" ;
+      else DIRCHILDREN="$DIRCHILDREN,\"$CDIR\"" ; MOREDC=1 ; fi
+    }
+    if [ "$MOREDC" == "1" ] ; then
+      if [ "$FLCHILDREN" == "" ]; then FLCHILDREN="{$DIRCHILDREN}" ;
+      else FLCHILDREN="$FLCHILDREN/{$DIRCHILDREN}" ; fi
+    else
+      if [ "$FLCHILDREN" == "" ]; then FLCHILDREN="$DIRCHILDREN" ;
+      else FLCHILDREN="$FLCHILDREN/$DIRCHILDREN" ; fi
+    fi
+  }
+  DIRCMD="mkdir -p $OUTDIR/\"$FLDIR\"/$FLCHILDREN"
+  eval "$DIRCMD"
+  echo "$DIRCMD"
+
+# create files
+find "$OUTDIR" -type d | while IFS= read D ; do
+  QD="$(printf '%q' "$(echo "$D")" )" ;
+  [ "$VERBOSE" == "1" ] && echo "$D";
+  for ((ifc=0; ifc<$((1 + RANDOM % 9)); ifc++)) {
+#  for ((ifc=0; ifc<${TOTALQ}; ifc++)) {
+    CFILE="$(get_rand_filename)" ;
+    echo -n $ifc 
+    [ "$VERBOSE" == "1" ] && echo "$D"/"$CFILE"
+#   if [[ "$TOTALQ" != "$VERBOSE" ]]; then
+#    echo $VERBOSE >> 1.txt
+           cat /dev/urandom \
+    | head -c$((1 + RANDOM % MAXFILESIZE)) \
+    > "$D"/"$CFILE"
+#   fi
+}
+done
+
+
