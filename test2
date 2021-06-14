@@ -1,0 +1,122 @@
+#!/bin/bash
+
+
+#exec 6>&1 2>&1
+#exec > /home/jenk/$LOGFILE
+ dir1=$1
+ dir2=$2
+ quantity=$3
+ LOGFILE=/home/jenk/logfile.txt
+
+#  all_func () {
+
+ dir1n=${dir1%%/}
+ dir2n=${dir2%%/}
+ quann='^[0-9]+$'
+ NN1=${dir1n%/*}
+ NN2=${dir2n%/*}
+ NN3=${dir1n##*/}
+ NN4=`du -s $dir1n 2>$LOGFILE 1>/dev/null | cut -f1`
+ NN5=`df $dir2n 2>$LOGFILE 1>/dev/null | awk '{print $4}' | tail -n 1`
+ DNAME=${NN3}-`date '+%C%m%d-%H%S'`_.tar.gz
+ NNAME=${NN3}_0.tar.gz
+
+ exit_f () {
+         ELOG=$(`cat $LOGFILE | wc -l`)
+if [[ -z `cat $LOGFILE | wc -l` ]];
+then
+        echo 1
+else
+        echo 2
+fi
+echo "$ELOG"
+         exit
+ }
+
+# test directories exist
+cd $dir1 1>/dev/null 2>&1
+ if [ $? -eq 1 ]; then
+ echo "Source Directory not accessible"
+        exit_f
+ fi
+ cd $dir2 1>/dev/null 2>&1
+ if [ $? -eq 1 ]; then
+ echo "Destination Directory not accessible"
+        exit_f
+ fi
+
+ #test identical and parents
+ if [ "$dir1" == "$dir2" ]; then
+        echo "The directories are identical"
+        exit_f
+elif [ "$NN1" == "$dir2" ]; then
+        echo "dest_dir is parent for source_dest"
+        exit_f
+elif [ "$NN2" == "$dir1" ]; then
+        echo "source_dest is parent for dest_dir"
+        exit_f
+else
+        echo no parent dirs
+fi
+if ! [[ $quantity =~ $quann ]] ; then
+        echo "error: Type archive quantity (param 3)" >&2;
+   exit_f
+fi
+    num_func () {
+FF1=`find $dir2 -type f | grep .tar.gz | grep -v _.tar.gz | rev | cut -d/ -f1 | rev | sort -Vr`
+for file in $FF1
+do
+   full1="${dir2%%/}"
+   full2="${dir2%%/}"
+   first_part="${file%%_*}"
+   last_part="${file#*.}"
+   var="${file#*_}"
+   count="${var%%.*}"
+   ((count = count + 1))
+if  [[ $count -gt $quantity ]]; then
+        continue
+elif  [[ $count = $quantity ]]; then
+   printf "%s %s%s\n" "rm -rf" $full1/ $file | bash
+   echo $count
+   continue
+else
+echo $count
+   printf "%s %s%s %s%s_%d.%s\n" "mv" $full1/ $file $full2/ $first_part $count $last_part | bash
+fi
+done
+} 2>$LOGFILE 1>/dev/null
+copy_func () {
+        echo "Do you want create archive numeric(N) or date\time(D) format?"
+read -p "type N for Numeric or D for date\time:" dn
+    case $dn in
+        [Dd]* ) tar -cvzf $dir2n/$DNAME  $dir1n 1>/dev/null 2>&1;;
+        [Nn]* ) num_func;;
+        * ) echo "Please type d or n";;
+    esac
+} 2>$LOGFILE
+
+if (("$NN4" < "$NN5")); then
+copy_func
+#tar -cvzf $dir2n/$NNAME $dir1n 1>/dev/null
+echo "directory copied"
+ else
+        echo "Not enough space on destination source, do you want copy files?"
+while true; do
+read -p "type Y to continue or N to abort:" yn
+    case $yn in
+        [Yy]* ) copy_func;;
+        [Nn]* ) exit;;
+        * ) echo "Please type y or n";;
+    esac
+done
+fi
+
+if [[ -z `cat $LOGFILE | wc -l` ]];
+then
+        echo 1
+else
+        echo 2
+fi
+echo "$LOGFILE"
+#exec 6>&1 2>&1
+#exec > /home/jenk/$LOGFILE
