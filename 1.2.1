@@ -11,7 +11,6 @@ TOTALQ=$4
 TD=$((TOTALQ-1))
 FILENAME=".f"
 
-
 get_rand_dirname() {
     for ((i=0; i<$((1 + RANDOM%8)); i++)) {
       printf \\$(printf '%03o' ${AARR[RANDOM%aarrcount]});
@@ -43,9 +42,7 @@ TOA=`find $OUTDIR -type d,f | wc -l`
 if [[ $TOA -ge $TOTALQ ]]; then
 break
 fi
-
  done;
 
 #find $OUTDIR -type f | wc
 #find $OUTDIR -type d | wc
-
