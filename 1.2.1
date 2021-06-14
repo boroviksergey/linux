@@ -34,11 +34,6 @@ cd $OUTDIR
      dir="$(get_rand_dirname)"
      mkdir -p $dir;
      pushd $dir 1>/dev/null;
-TDA=`find $OUTDIR -type d | wc -l`
-#echo $TDA
-if [[ $TDA -ge $TD ]]; then
-break
-fi
    done;
 cat /dev/urandom | head -c$((1 + RANDOM%$MAXFILESIZE)) > "$(get_rand_filename)";
    for i in $(seq 1 $depth); do popd 2>/dev/null; done 1>/dev/null;
