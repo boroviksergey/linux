@@ -72,7 +72,7 @@ copy_func () {
 echo "Do you want create archive numeric or date\time format?"
 read -p "type N for Numeric or D for date\time:" dn
     case $dn in
-        [Dd]* ) tar -cvzf $dir2n/$DNAME  $dir1n;;
+        [Dd]* ) tar -cvzf $dir2n/$DNAME  $dir1n 1>/dev/null 2>&1;;
         [Nn]* ) num_func;;
         * ) echo "Please type d or n";;
     esac
@@ -80,7 +80,6 @@ read -p "type N for Numeric or D for date\time:" dn
 
 if (("$NN4" < "$NN5")); then
 copy_func
-tar -cvzf $dir2n/$NNAME $dir1n
 echo "directory copied"
  else
         echo "Not enough space on destination source, do you want copy files?"
