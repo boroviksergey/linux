@@ -1,0 +1,105 @@
+#!/bin/bash
+
+ dir1=$1
+ dir2=$2
+ LOGFILE=/home/jenk/logfile.txt
+ LOGFILE1=/home/jenk/2logfile.txt
+ dir1n=${dir1%%/}
+ dir2n=${dir2%%/}
+ NN1=${dir1n%/*}
+ NN2=${dir2n%/*}
+ NN3=${dir1n##*/}
+ NN4=`du -s $dir1n 2>$LOGFILE | cut -f1`
+ NN5=`df $dir2n 2>>$LOGFILE | awk '{print $4}' | tail -n 1`
+ DNAME=${NN3}-`date '+%C%m%d-%H%S'`_.tar.gz
+ NNAME=${NN3}_0.tar.gz
+
+ exit_f () {
+ ELOG=$(( `cat $LOGFILE | wc -l` ))
+if ! [[ $ELOG == 0 ]];
+then
+echo -e "\033[31m'Warning: ${ELOG} error's occurred!'\033[0m"
+fi
+   exit
+ }
+
+# test directories exist
+cd $dir1 1>/dev/null 2>&1
+ if [ $? -eq 1 ]; then
+ echo "Source Directory not accessible" | tee -a $LOGFILE
+        exit_f
+ fi
+ cd $dir2 1>/dev/null 2>&1
+ if [ $? -eq 1 ]; then
+ echo "Destination Directory not accessible" | tee -a $LOGFILE
+        exit_f
+ fi
+#test identical and parents
+ if [ "$dir1" == "$dir2" ]; then
+        echo "The directories are identical" | tee -a $LOGFILE
+        exit_f
+elif [ "$NN1" == "$dir2" ]; then
+        echo "dest_dir is parent for source_dest"
+        exit_f
+elif [ "$NN2" == "$dir1" ]; then
+        echo "source_dest is parent for dest_dir"
+        exit_f
+else
+        echo no parent dirs
+fi
+# create & rename numeric archives
+num_func () {
+FF1=`find $dir2 -type f | grep .tar.gz | grep -v _.tar.gz | rev | cut -d/ -f1 | rev | sort -Vr`
+for file in $FF1
+do
+   full1="${dir2%%/}"
+   full2="${dir2%%/}"
+   first_part="${file%%_*}"
+   last_part="${file#*.}"
+   var="${file#*_}"
+   count="${var%%.*}"
+   ((count = count + 1))
+if  [[ $count -gt $dn ]]; then
+        continue
+elif  [[ $count = $dn ]]; then
+   printf "%s %s%s\n" "rm -rf" $full1/ $file | bash
+   continue
+else
+   printf "%s %s%s %s%s_%d.%s\n" "mv" $full1/ $file $full2/ $first_part $count $last_part | bash
+fi
+done
+} 2>>$LOGFILE
+
+# Choice Date or Num Archive
+copy_func () {
+        echo "Type [1-19] (Numeric) or D (Date) archive "
+while true; do
+read -p "Type [1-19] (Numeric) or D (Date) archive: " dn
+    case $dn in
+        [Dd]* ) tar -cvzf $dir2n/$DNAME $dir1n 1>/dev/null 2>&1
+                break 1;;
+        [1-9]|1[0-9]* ) num_func
+                break 1;;
+        * ) echo "Please type d or number 1-19";;
+    esac
+done
+} 2>>$LOGFILE
+
+# free space check 
+if (("$NN4" < "$NN5")); then
+copy_func
+tar -cvzf $dir2n/$NNAME $dir1n 1>/dev/null 2>&1
+echo "directory copied"
+ else
+        echo "Not enough space on destination source, do you want copy files?"
+while true; do
+read -p "type Y to continue or N to abort:" yn
+    case $yn in
+        [Yy]* ) copy_func
+        break 1;;
+        [Nn]* ) exit_f;;
+        * ) echo "Please type y or n";;
+    esac
+done
+fi
+exit_f
